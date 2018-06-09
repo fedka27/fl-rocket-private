@@ -29,7 +29,11 @@ public class NearestWashServiceRequest extends GoogleHttpClientSpiceRequest<Wash
     private int page;
     private String id_session;
 
-    public NearestWashServiceRequest(double lat, double lon, int distance, int page, String id_session) {
+    public NearestWashServiceRequest(double lat,
+                                     double lon,
+                                     int distance,
+                                     int page,
+                                     String id_session) {
         super(WashServiceResult.class);
         this.baseUrl = Constants.URL + "service_locations/nearest";
         this.lat = lat;
@@ -49,7 +53,9 @@ public class NearestWashServiceRequest extends GoogleHttpClientSpiceRequest<Wash
                 .appendQueryParameter("longitude", "" + lon)
                 .appendQueryParameter("distance", "" + distance)
                 .appendQueryParameter("page", "" + page)
-                .build().toString();
+                .appendQueryParameter("organization_id", Constants.ORGANIZATION_ID)
+                .build()
+                .toString();
 
         Log.d("NearestWashServiceRequest", "uri = " + uri);
 

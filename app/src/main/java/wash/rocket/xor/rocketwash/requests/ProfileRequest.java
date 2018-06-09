@@ -1,5 +1,6 @@
 package wash.rocket.xor.rocketwash.requests;
 
+import android.net.Uri;
 import android.util.Log;
 
 import com.bluelinelabs.logansquare.LoganSquare;
@@ -30,11 +31,18 @@ public class ProfileRequest extends GoogleHttpClientSpiceRequest<ProfileResult> 
 
     @Override
     public ProfileResult loadDataFromNetwork() throws IOException {
-        Ln.d("ProfileRequest = " + baseUrl);
+
+        String uri = Uri.parse(baseUrl)
+                .buildUpon()
+                .appendQueryParameter("organization_id", Constants.ORGANIZATION_ID)
+                .build()
+                .toString();
+
+        Ln.d("ProfileRequest = " + uri);
 
         HttpHeaders header = new HttpHeaders();
         header.set("X-Rocketwash-Session-Id", session_id);
-        HttpRequest request = getHttpRequestFactory().buildGetRequest(new GenericUrl(baseUrl)).setHeaders(header);
+        HttpRequest request = getHttpRequestFactory().buildGetRequest(new GenericUrl(uri)).setHeaders(header);
 
 
         String result = "";
