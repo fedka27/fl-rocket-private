@@ -32,7 +32,7 @@ android {
     compileSdkVersion 27
     buildToolsVersion "27.0.2"
     defaultConfig {
-        applicationId "me.rocketsoft.rocketwash"
+        applicationId "me.rocketsoft.rocketwash.individual.base"
 
         minSdkVersion 14
         targetSdkVersion 27

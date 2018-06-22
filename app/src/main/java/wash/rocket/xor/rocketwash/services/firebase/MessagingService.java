@@ -36,7 +36,8 @@ public class MessagingService extends FirebaseMessagingService {
             JSONObject jsonObject = new JSONObject(remoteMessage.getData());
             notificationData = new NotificationData(
                     jsonObject.getString("title"),
-                    jsonObject.getString("message")
+                    jsonObject.getString("message"),
+                    jsonObject.getString("imageBase64")
             );
         } catch (JSONException e) {
             e.printStackTrace();
@@ -53,6 +54,7 @@ public class MessagingService extends FirebaseMessagingService {
                     R.drawable.ic_launcher,
                     notificationData.getTitle(),
                     notificationData.getMessage(),
+                    notificationData.getImage(),
                     intent);
         }
     }

@@ -3,8 +3,10 @@ package wash.rocket.xor.rocketwash.services.firebase;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.support.annotation.DrawableRes;
+import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.app.TaskStackBuilder;
@@ -27,6 +29,7 @@ public class NotificationManager {
                                  @DrawableRes int icon,
                                  String title,
                                  String message,
+                                 @Nullable Bitmap image,
                                  Intent intentRun) {
         countNotification++;
 
@@ -36,15 +39,19 @@ public class NotificationManager {
 
         PendingIntent pendingIntent = taskStackBuilder.getPendingIntent(0, FLAG_UPDATE_CURRENT);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID);
         builder.setSmallIcon(smallIcon)
                 .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), icon))
                 .setContentTitle(title)
                 .setContentText(message)
-                .setAutoCancel(false)
+                .setAutoCancel(true)
                 .setNumber(countNotification)
                 .setFullScreenIntent(pendingIntent, true)
                 .setContentIntent(pendingIntent);
+
+        if (image != null) {
+            builder.setStyle(new NotificationCompat.BigPictureStyle().bigPicture(image));
+        }
 
         NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(context);
 

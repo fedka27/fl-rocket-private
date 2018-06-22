@@ -8,6 +8,7 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.NestedScrollView;
@@ -32,6 +33,7 @@ import android.widget.TextView;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
@@ -60,11 +62,13 @@ import wash.rocket.xor.rocketwash.requests.MapDirectionRequest;
 import wash.rocket.xor.rocketwash.requests.MapReverceGeocodingRequest;
 import wash.rocket.xor.rocketwash.requests.ReserveCancelRequest;
 import wash.rocket.xor.rocketwash.util.util;
+import wash.rocket.xor.rocketwash.widgets.NiceSupportMapFragment;
 
 @SuppressLint("LongLogTag")
-public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment {
+public class WashServiceInfoFragmentReserved extends BaseFragment {
 
     public static final String TAG = "WashServiceInfoFragmentReserved";
+    private static final int REQUEST_PAY = 245;
 
     private static final String POINTS = "points";
     private static final String ID_SERVICE = "id_service";
@@ -103,8 +107,8 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
     private Typeface mFont;
 
     private TextView txtTime;
-    private TextView txtSumm;
     private TextView txtDuration;
+    private TextView txtSumm;
 
     private TextView txtInfoTitile;
     private TextView txtInfoDistance;
@@ -116,6 +120,7 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
     private GoogleMap.InfoWindowAdapter infoBaloon;
     private Marker mMarker;
 
+    private Button payButton;
     private Button share;
     private Button btnCancel;
 
@@ -143,10 +148,17 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
         return fragment;
     }
 
-    @Nullable
     @Override
-    protected WashService getWashService() {
-        return getArguments().getParcelable(SERVICE);
+    public void onAttach(Activity activity) {
+
+        Log.w(TAG, "onAttach");
+
+        super.onAttach(activity);
+        try {
+            mCallback = (IFragmentCallbacksInterface) activity;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(activity.toString() + " must implement IFragmentCallbacksInterface");
+        }
     }
 
     @Override
@@ -159,28 +171,14 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
         setRetainInstance(true);
         setHasOptionsMenu(true);
 
-        if (savedInstanceState != null) {
-            Log.d(TAG, "savedInstanceState != null");
-            mPoints = savedInstanceState.getParcelableArrayList(POINTS);
+        mPoints = new ArrayList<Point>();
 
-            mIdService = savedInstanceState.getInt("mIdService");
-            mLatitude = savedInstanceState.getDouble("mLatitude");
-            mLongitude = savedInstanceState.getDouble("mLongitude");
-            mTitle = savedInstanceState.getString("mTitle");
-            mService = savedInstanceState.getParcelable("mService");
-            mReserved = savedInstanceState.getParcelable("mReserved");
-
-        } else {
-            Log.d(TAG, "savedInstanceState == null");
-            mPoints = new ArrayList<Point>();
-
-            mIdService = getArguments().getInt(ID_SERVICE);
-            mLatitude = getArguments().getDouble(LATITUDE);
-            mLongitude = getArguments().getDouble(LONGITUDE);
-            mTitle = getArguments().getString(TITLE);
-            mService = getArguments().getParcelable(SERVICE);
-            mReserved = getArguments().getParcelable(RESERVED);
-        }
+        mIdService = getArguments().getInt(ID_SERVICE);
+        mLatitude = getArguments().getDouble(LATITUDE);
+        mLongitude = getArguments().getDouble(LONGITUDE);
+        mTitle = getArguments().getString(TITLE);
+        mService = getArguments().getParcelable(SERVICE);
+        mReserved = getArguments().getParcelable(RESERVED);
         mMarkers = new ArrayList<Marker>();
     }
 
@@ -196,14 +194,6 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
         progressBar = (ProgressBar) rootView.findViewById(R.id.progressBar);
         mContent = (LinearLayout) rootView.findViewById(R.id.content_info);
 
-//        ((NiceSupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map)).setL(new MapFragmentWrapper.OnTouchListener() {
-//            @Override
-//            public void onTouch() {
-//                mScrollView1.requestDisallowInterceptTouchEvent(true);
-//            }
-//        });
-
-
         toolbar = setToolbar(rootView);
         toolbar.setTitle(mTitle);
 
@@ -218,17 +208,29 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
         });
 
         initControls(rootView);
-
         return rootView;
     }
 
     @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        NiceSupportMapFragment mapFragment = (NiceSupportMapFragment) getChildFragmentManager().findFragmentById(R.id.map);
+        mapFragment.getMapAsync(new OnMapReadyCallback() {
+            @Override
+            public void onMapReady(GoogleMap googleMap) {
+
+                initMap(googleMap);
+
+            }
+        });
+    }
+
     protected void initMap(GoogleMap googleMap) {
         mMap = googleMap;
 
 
         if (mMap != null) {
-//            mMap.setMyLocationEnabled(true); // TODO Location ?
 
             int mp = (int) getActivity().getResources().getDimension(R.dimen.map_padding);
             mMap.setPadding(mp, mp, mp, mp);
@@ -350,10 +352,10 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
 
     private void initControls(View rootView) {
 
-        txtTime = (TextView) mContent.findViewById(R.id.txtTime);
-        txtDuration = (TextView) mContent.findViewById(R.id.txtDuration);
-        txtSumm = (TextView) mContent.findViewById(R.id.txtSumm);
-        share = (Button) mContent.findViewById(R.id.btnShare);
+        txtTime = mContent.findViewById(R.id.txtTime);
+        txtDuration = rootView.findViewById(R.id.txtDuration);
+        txtSumm = rootView.findViewById(R.id.txtSumm);
+        share = mContent.findViewById(R.id.btnShare);
         share.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -416,13 +418,6 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
             if (update != null) {
                 mMap.moveCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.fromLatLngZoom(update, 11.0f)));
             }
-            mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-                @Override
-                public void onMapClick(LatLng latLng) {
-                    // mIsNeedLocationUpdate = false;
-                    // moveToLocation(latLng, false);
-                }
-            });
         }
     }
 
@@ -452,19 +447,6 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
         super.onSaveInstanceState(outState);
     }
 
-    private void collapseMap() {
-
-        if (mMap != null && mContent != null) {
-            //mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mLocation, 11f), 1000, null);
-        }
-    }
-
-    private void expandMap() {
-        if (mMap != null) {
-            mMap.animateCamera(CameraUpdateFactory.zoomTo(14f), 1000, null);
-        }
-    }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
@@ -483,9 +465,7 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.d(TAG, "onActivityResult");
         super.onActivityResult(requestCode, resultCode, data);
-
-        //XXX check rest toolbar
-        ((AppCompatActivity) getActivity()).invalidateOptionsMenu();
+        getActivity().invalidateOptionsMenu();
         ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
     }
 
@@ -602,7 +582,7 @@ public class WashServiceInfoFragmentReserved extends WashServiceInfoBaseFragment
     @Override
     public void onLocationChanged(Location location) {
 
-       // Log.d(TAG, "onLocationChanged");
+        // Log.d(TAG, "onLocationChanged");
 
         if (location != null) {
             mLatitude = location.getLatitude();

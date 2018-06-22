@@ -23,8 +23,6 @@
 
         </android.support.v7.widget.Toolbar>
 
-        <include layout="@layout/include_info_discount" />
-
     </android.support.design.widget.AppBarLayout>
 
 
